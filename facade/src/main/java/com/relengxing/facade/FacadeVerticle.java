@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author chaoli
@@ -136,11 +137,8 @@ public class FacadeVerticle extends AbstractVerticle {
 
     public Handler<RoutingContext> uploadFile = ctx -> {
         List<FileUpload> uploads = ctx.fileUploads();
-        for (FileUpload fileUpload : uploads) {
-            String s = fileUpload.fileName();
-            ctx.end("uploaded file " + s);
-        }
-
+        String collect = uploads.stream().map(FileUpload::fileName).collect(Collectors.joining(", "));
+        ctx.end("uploaded file: " + collect);
     };
 
 }
