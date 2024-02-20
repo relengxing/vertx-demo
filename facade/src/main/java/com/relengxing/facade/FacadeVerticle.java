@@ -125,7 +125,7 @@ public class FacadeVerticle extends AbstractVerticle {
         String name = queryParams.contains("name") ? queryParams.get("name") : "unknown";
 
         KafkaProducerRecord<String, String> record =
-            KafkaProducerRecord.create("test", "message_" + name);
+            KafkaProducerRecord.create("topic_1", "message_" + name);
 
         KafkaConfig.getProducer().write(record);
     };
