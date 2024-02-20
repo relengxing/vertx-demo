@@ -9,8 +9,10 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.redis.client.RedisAPI;
@@ -52,6 +54,9 @@ public class FacadeVerticle extends AbstractVerticle {
         topics.add("topic_1");
         consumer.subscribe(topics);
 
+        // 文件上传
+        router.route().handler(BodyHandler.create());
+        router.route().method(HttpMethod.POST).path("/upload").handler(uploadFile);
 
         server.requestHandler(router).listen(8888);
     }
@@ -98,12 +103,9 @@ public class FacadeVerticle extends AbstractVerticle {
         MultiMap queryParams = ctx.queryParams();
         String name = queryParams.contains("name") ? queryParams.get("name") : "unknown";
 
-        RedisAPI.api(RedisConfig.getClient()).set(List.of(name, name + "@redis.com")).onSuccess(result -> {
-                ctx.end("write redis success");
-            })
-            .onFailure(err -> {
-                ctx.end("write redis failed");
-            });
+        RedisAPI.api(RedisConfig.getClient()).set(List.of(name, name + "@redis.com"))
+            .onSuccess(result -> ctx.end("write redis success"))
+            .onFailure(err -> ctx.end("write redis failed"));
     };
 
     public Handler<RoutingContext> getRedis = ctx -> {
@@ -127,6 +129,18 @@ public class FacadeVerticle extends AbstractVerticle {
         KafkaProducerRecord<String, String> record =
             KafkaProducerRecord.create("topic_1", "message_" + name);
 
-        KafkaConfig.getProducer().write(record);
+        KafkaConfig.getProducer().write(record)
+            .onSuccess(result -> ctx.end("write kafka success, " + result))
+            .onFailure(err -> ctx.end("write kafka failed"));
     };
+
+    public Handler<RoutingContext> uploadFile = ctx -> {
+        List<FileUpload> uploads = ctx.fileUploads();
+        for (FileUpload fileUpload : uploads) {
+            String s = fileUpload.fileName();
+            ctx.end("uploaded file " + s);
+        }
+
+    };
+
 }
